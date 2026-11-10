@@ -8,8 +8,9 @@ const CN_NUM = { 半: 0.5, 一: 1, 二: 2, 兩: 2, 三: 3, 四: 4, 五: 5 };
 
 // state.meals: 餐點清單（名稱）; state.kcal: 手動輸入的熱量; state.plan: { "YYYY-MM-DD": [早, 午, 晚] }
 let state = load();
-let view = new Date();
-view.setDate(1);
+const MOBILE = window.matchMedia("(max-width: 820px)");
+let mode = localStorage.getItem("meal-view") || (MOBILE.matches ? "week" : "month");
+let cursor = new Date(); // 目前檢視的週 / 月所包含的日期
 let picked = null; // 點選模式中被選取的餐點
 let drag = null; // { type: "meal", name } | { type: "slot", date, i }
 
@@ -71,7 +72,8 @@ function kcalOf(name) {
 
 // ---------- 資料操作 ----------
 
-const dateKey = (y, m, d) => `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+const dateKey = (dt) =>
+  `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
 const getSlot = (date, i) => (state.plan[date] || [])[i] || "";
 
 function setSlot(date, i, name) {
@@ -169,30 +171,44 @@ function renderList() {
 }
 
 function renderCalendar() {
-  const y = view.getFullYear();
-  const m = view.getMonth();
-  $("month-label").textContent = `${y} 年 ${m + 1} 月`;
+  const y = cursor.getFullYear();
+  const m = cursor.getMonth();
+  const days = [];
+  let blanks = 0;
+  if (mode === "week") {
+    const start = cursor.getDate() - cursor.getDay();
+    for (let i = 0; i < 7; i++) days.push(new Date(y, m, start + i));
+    const end = days[6];
+    $("month-label").textContent =
+      `${days[0].getFullYear()} 年 ${days[0].getMonth() + 1}/${days[0].getDate()} – ${end.getMonth() + 1}/${end.getDate()}`;
+  } else {
+    blanks = new Date(y, m, 1).getDay();
+    const count = new Date(y, m + 1, 0).getDate();
+    for (let d = 1; d <= count; d++) days.push(new Date(y, m, d));
+    $("month-label").textContent = `${y} 年 ${m + 1} 月`;
+  }
+  document.body.dataset.mode = mode;
+  document.querySelectorAll(".mode button").forEach((b) => b.classList.toggle("on", b.dataset.mode === mode));
 
   const cal = $("calendar");
   cal.replaceChildren();
-  const now = new Date();
-  const todayKey = dateKey(now.getFullYear(), now.getMonth(), now.getDate());
-  const firstWeekday = new Date(y, m, 1).getDay();
-  const daysInMonth = new Date(y, m + 1, 0).getDate();
-
-  for (let i = 0; i < firstWeekday; i++) cal.append(el("div", "day blank"));
+  const todayKey = dateKey(new Date());
+  for (let i = 0; i < blanks; i++) cal.append(el("div", "day blank"));
 
   let monthTotal = 0;
   let recordedDays = 0;
   let unknown = 0;
 
-  for (let d = 1; d <= daysInMonth; d++) {
-    const date = dateKey(y, m, d);
+  for (const dt of days) {
+    const date = dateKey(dt);
     const cell = el("div", "day" + (date === todayKey ? " today" : ""));
     cell.dataset.date = date;
 
     const head = el("div", "day-head");
-    head.append(el("span", "day-num", d), el("span", "day-wd", `週${WEEKDAYS[(firstWeekday + d - 1) % 7]}`));
+    head.append(
+      el("span", "day-num", mode === "week" ? `${dt.getMonth() + 1}/${dt.getDate()}` : dt.getDate()),
+      el("span", "day-wd", `週${WEEKDAYS[dt.getDay()]}`),
+    );
     const total = el("span", "day-kcal");
     const dice = el("button", "icon-btn dice", "🎲");
     dice.title = "從清單隨機填滿空的餐";
@@ -219,10 +235,11 @@ function renderCalendar() {
     cal.append(cell);
   }
 
+  const span = mode === "week" ? "本週" : "本月";
   $("summary").textContent = recordedDays
-    ? `本月已記錄 ${recordedDays} 天，平均每天約 ${Math.round(monthTotal / recordedDays)} 大卡` +
+    ? `${span}已記錄 ${recordedDays} 天，平均每天約 ${Math.round(monthTotal / recordedDays)} 大卡` +
       (unknown ? `（${unknown} 餐熱量未知，未計入）` : "")
-    : "本月還沒有紀錄";
+    : `${span}還沒有紀錄`;
 }
 
 function renderSlot(date, i, name) {
@@ -292,6 +309,7 @@ function editSlot(slot, date, i, current) {
   input.setAttribute("list", "meal-options");
   input.placeholder = "輸入餐點";
   slot.draggable = false;
+  slot.classList.add("editing");
   slot.replaceChildren(el("span", "tag", SLOT_TAGS[i]), input);
   input.focus();
   input.select();
@@ -371,17 +389,32 @@ $("add-name").addEventListener("input", (e) => {
     : k == null ? "估不出熱量，新增後可手動填寫" : `估算約 ${k} 大卡`;
 });
 
-function shiftMonth(delta) {
-  view.setMonth(view.getMonth() + delta);
+function shift(delta) {
+  if (mode === "week") {
+    cursor.setDate(cursor.getDate() + 7 * delta);
+  } else {
+    cursor.setDate(1);
+    cursor.setMonth(cursor.getMonth() + delta);
+  }
   renderCalendar();
 }
-$("prev").addEventListener("click", () => shiftMonth(-1));
-$("next").addEventListener("click", () => shiftMonth(1));
+$("prev").addEventListener("click", () => shift(-1));
+$("next").addEventListener("click", () => shift(1));
 $("today").addEventListener("click", () => {
-  view = new Date();
-  view.setDate(1);
+  cursor = new Date();
   renderCalendar();
   scrollToToday();
+});
+document.querySelectorAll(".mode button").forEach((b) =>
+  b.addEventListener("click", () => {
+    mode = b.dataset.mode;
+    try { localStorage.setItem("meal-view", mode); } catch (e) { /* 僅影響下次開啟的預設檢視 */ }
+    renderCalendar();
+  }));
+// 手機上清單預設為精簡側欄，按「編輯」展開成完整面板
+$("panel-toggle").addEventListener("click", () => {
+  const open = document.body.classList.toggle("panel-open");
+  $("panel-toggle").textContent = open ? "完成" : "編輯";
 });
 $("pick-cancel").addEventListener("click", () => {
   picked = null;
@@ -438,7 +471,7 @@ $("import-file").addEventListener("change", async (e) => {
 });
 
 function scrollToToday() {
-  if (window.matchMedia("(max-width: 820px)").matches) {
+  if (MOBILE.matches && mode === "month") {
     document.querySelector(".day.today")?.scrollIntoView({ block: "center" });
   }
 }

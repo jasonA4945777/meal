@@ -15,12 +15,19 @@
       <button id="next" aria-label="下個月">›</button>
       <button id="today">今天</button>
     </div>
+    <div class="mode" role="group" aria-label="檢視方式">
+      <button data-mode="week">週</button>
+      <button data-mode="month">月</button>
+    </div>
     <div id="summary" class="summary"></div>
   </header>
 
   <main class="layout">
     <aside class="panel" id="panel">
-      <h2>餐點清單</h2>
+      <div class="panel-head">
+        <h2>餐點清單</h2>
+        <button id="panel-toggle">編輯</button>
+      </div>
       <form id="add-form" class="add-form">
         <input id="add-name" placeholder="輸入餐點，例如：雞腿便當" autocomplete="off" required>
         <button type="submit">新增</button>

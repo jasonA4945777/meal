@@ -162,7 +162,7 @@ body.dragging-slot .drop-remove { display: block; }
   padding: 0 7px;
 }
 .day-wd { display: none; color: var(--muted); }
-.day-kcal { margin-left: auto; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.day-kcal { white-space: nowrap; margin-left: auto; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
 .dice { font-size: 12px; padding: 1px 3px; opacity: .45; }
 .day:hover .dice { opacity: 1; }
 
@@ -213,23 +213,92 @@ body.picking .slot:hover { border-color: var(--accent); }
 .pick-bar button { padding: 3px 10px; background: transparent; color: inherit; border-color: currentColor; }
 .toast { bottom: 70px; }
 
-/* 手機：日曆改為逐日清單 */
+.mode { display: flex; }
+.mode button { border-radius: 0; padding: 6px 12px; }
+.mode button:first-child { border-radius: 8px 0 0 8px; }
+.mode button:last-child { border-radius: 0 8px 8px 0; margin-left: -1px; }
+.mode button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 10px; }
+.panel-head h2 { margin: 0; }
+#panel-toggle { display: none; }
+body[data-mode="week"] .day { min-height: 150px; }
+body[data-mode="week"] .slot { flex: 1; }
+body[data-mode="week"] .slot .name { white-space: normal; }
+
+/* 手機：左側精簡清單 + 右側一天一列（早 / 午 / 晚 三欄） */
 @media (max-width: 820px) {
-  .layout { grid-template-columns: minmax(0, 1fr); }
-  .panel { position: static; max-height: none; }
-  .meal-list { max-height: 34vh; }
-  .summary { margin-left: 0; width: 100%; }
-  .weekdays { display: none; }
-  .calendar { grid-template-columns: minmax(0, 1fr); }
-  .day { min-height: 0; padding: 10px; gap: 5px; }
-  .day.blank { display: none; }
-  .day-wd { display: inline; }
-  .day-kcal { font-size: 12px; }
-  .dice { opacity: 1; font-size: 15px; }
-  .slot { font-size: 14px; min-height: 34px; padding: 4px 8px; }
-  .slot .tag, .slot .kcal { font-size: 12px; }
-  .slot.filled .icon-btn { display: block; font-size: 16px; padding: 2px 6px; }
-  .slot.filled:hover .kcal { display: inline; }
-  .slot input { font-size: 16px; }
+  .topbar { padding: 8px; gap: 6px 10px; }
+  .topbar h1 { display: none; }
+  .month-nav { flex: 1; }
+  .month-nav button { padding: 5px 9px; }
+  #month-label { font-size: 14px; min-width: 0; flex: 1; }
+  .summary { margin: 0; width: 100%; font-size: 12px; }
+  .layout { grid-template-columns: 88px minmax(0, 1fr); gap: 6px; padding: 0 6px 76px; }
+
+  .panel { padding: 6px; top: 6px; max-height: calc(100dvh - 12px); border-radius: 10px; }
+  .panel-head { flex-wrap: wrap; margin-bottom: 6px; }
+  .panel-head h2 { font-size: 13px; }
+  #panel-toggle { display: block; padding: 2px 6px; font-size: 12px; width: 100%; }
+  body:not(.panel-open) .panel :is(.add-form, .panel > .hint, .backup, .kcal-input, .unit, .meal .icon-btn, .drop-remove) {
+    display: none;
+  }
+  body:not(.panel-open) .meal { padding: 7px 5px; font-size: 13px; margin-bottom: 4px; border-radius: 8px; }
+  body.panel-open .panel {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    max-height: none;
+    border: none;
+    border-radius: 0;
+    padding: 14px;
+  }
+  body.panel-open .panel-head h2 { font-size: 16px; }
+  body.panel-open #panel-toggle { width: auto; padding: 5px 14px; font-size: 14px; }
   .add-form input { font-size: 16px; }
+
+  .weekdays { display: none; }
+  .calendar { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .day, body[data-mode="week"] .day {
+    position: relative;
+    display: grid;
+    grid-template-columns: 46px repeat(3, minmax(0, 1fr));
+    gap: 3px;
+    min-height: 62px;
+    padding: 3px;
+    border-radius: 10px;
+  }
+  .day.blank { display: none; }
+  .day-head { flex-direction: column; justify-content: center; gap: 0; font-size: 11px; }
+  .day-num { font-size: 12px; }
+  .today .day-num { padding: 0 4px; }
+  .day-wd { display: inline; }
+  .day-kcal { margin: 0; font-size: 10px; }
+  .day-kcal:empty { display: none; }
+  .dice { opacity: 1; font-size: 12px; }
+
+  .slot {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto 1fr;
+    align-content: start;
+    gap: 0 3px;
+    padding: 2px 3px;
+    font-size: 12px;
+  }
+  .slot .name {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    white-space: normal;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow-wrap: anywhere;
+  }
+  .slot .kcal { text-align: right; }
+  .slot.filled .icon-btn { display: block; font-size: 14px; padding: 0 3px; }
+  .slot.filled:hover .kcal { display: inline; }
+  .slot.editing { position: absolute; inset: 3px 3px 3px 52px; z-index: 2; background: var(--card); border-color: var(--accent); }
+  .slot.editing input { grid-column: 1 / -1; font-size: 16px; padding: 4px 6px; }
+  .pick-bar { font-size: 13px; }
 }
