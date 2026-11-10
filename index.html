@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>餐點紀錄器</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>餐點紀錄器</h1>
+    <div class="month-nav">
+      <button id="prev" aria-label="上個月">‹</button>
+      <span id="month-label"></span>
+      <button id="next" aria-label="下個月">›</button>
+      <button id="today">今天</button>
+    </div>
+    <div id="summary" class="summary"></div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel" id="panel">
+      <h2>餐點清單</h2>
+      <form id="add-form" class="add-form">
+        <input id="add-name" placeholder="輸入餐點，例如：雞腿便當" autocomplete="off" required>
+        <button type="submit">新增</button>
+      </form>
+      <p id="add-hint" class="hint">拖曳餐點到日曆格子；手機可先點餐點、再點格子。</p>
+      <ul id="meal-list" class="meal-list"></ul>
+      <div class="drop-remove" id="drop-remove">拖到這裡可從日曆移除</div>
+      <div class="backup">
+        <button id="export">匯出備份</button>
+        <button id="import">匯入備份</button>
+        <input id="import-file" type="file" accept="application/json" hidden>
+      </div>
+    </aside>
+
+    <section class="calendar-wrap">
+      <div class="weekdays" aria-hidden="true">
+        <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+      </div>
+      <div id="calendar" class="calendar"></div>
+    </section>
+  </main>
+
+  <div id="pick-bar" class="pick-bar" hidden>
+    <span id="pick-text"></span>
+    <button id="pick-cancel">取消</button>
+  </div>
+  <div id="toast" class="toast" hidden></div>
+  <datalist id="meal-options"></datalist>
+
+  <script src="foods.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
